@@ -2,7 +2,7 @@ import os
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 load_dotenv()
 
@@ -18,6 +18,8 @@ SessionLocal = sessionmaker(
     autoflush=False,
     bind=engine,
 )
+
+Base = declarative_base()
 
 
 def check_database_connection():
