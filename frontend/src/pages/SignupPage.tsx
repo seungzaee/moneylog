@@ -49,43 +49,80 @@ function SignupPage({ onSignupSuccess, onGoToLogin }: SignupPageProps) {
   };
 
   return (
-    <main>
-      <h1>Signup</h1>
-
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="signup-email">Email</label>
-          <br />
-          <input
-            id="signup-email"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
+    <main className="flex min-h-screen items-center justify-center px-4">
+      <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold text-slate-900">Create account</h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Start tracking your income and expenses
+          </p>
         </div>
 
-        <div>
-          <label htmlFor="signup-password">Password</label>
-          <br />
-          <input
-            id="signup-password"
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label
+              htmlFor="signup-email"
+              className="mb-2 block text-sm font-medium text-slate-700"
+            >
+              Email
+            </label>
+            <input
+              id="signup-email"
+              type="email"
+              className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
+          </div>
 
-        <button type="submit" disabled={isLoading}>
-          {isLoading ? "Signing up..." : "Signup"}
-        </button>
-      </form>
+          <div>
+            <label
+              htmlFor="signup-password"
+              className="mb-2 block text-sm font-medium text-slate-700"
+            >
+              Password
+            </label>
+            <input
+              id="signup-password"
+              type="password"
+              className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          </div>
 
-      {successMessage && <p>{successMessage}</p>}
-      {errorMessage && <p>{errorMessage}</p>}
+          {successMessage && (
+            <div className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
+              {successMessage}
+            </div>
+          )}
 
-      <button type="button" onClick={onGoToLogin}>
-        Go to Login
-      </button>
+          {errorMessage && (
+            <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
+              {errorMessage}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+          >
+            {isLoading ? "Signing up..." : "Signup"}
+          </button>
+        </form>
+
+        <p className="mt-6 text-center text-sm text-slate-500">
+          Already have an account?{" "}
+          <button
+            type="button"
+            onClick={onGoToLogin}
+            className="font-semibold text-slate-900 underline-offset-4 hover:underline"
+          >
+            Login
+          </button>
+        </p>
+      </section>
     </main>
   );
 }

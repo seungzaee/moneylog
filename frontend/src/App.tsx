@@ -17,32 +17,39 @@ function App() {
 
   if (isLoggedIn && page === "dashboard") {
     return (
-      <DashboardPage
-        onLogout={() => {
-          setIsLoggedIn(false);
-          setPage("login");
-        }}
-      />
+      <div className="min-h-screen bg-slate-100">
+        <DashboardPage
+          onLogout={() => {
+            localStorage.removeItem("access_token");
+            setIsLoggedIn(false);
+            setPage("login");
+          }}
+        />
+      </div>
     );
   }
 
   if (page === "signup") {
     return (
-      <SignupPage
-        onSignupSuccess={() => setPage("login")}
-        onGoToLogin={() => setPage("login")}
-      />
+      <div className="min-h-screen bg-slate-100">
+        <SignupPage
+          onSignupSuccess={() => setPage("login")}
+          onGoToLogin={() => setPage("login")}
+        />
+      </div>
     );
   }
 
   return (
-    <LoginPage
-      onLoginSuccess={() => {
-        setIsLoggedIn(true);
-        setPage("dashboard");
-      }}
-      onGoToSignup={() => setPage("signup")}
-    />
+    <div className="min-h-screen bg-slate-100">
+      <LoginPage
+        onLoginSuccess={() => {
+          setIsLoggedIn(true);
+          setPage("dashboard");
+        }}
+        onGoToSignup={() => setPage("signup")}
+      />
+    </div>
   );
 }
 
