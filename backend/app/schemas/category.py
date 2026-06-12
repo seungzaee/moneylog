@@ -8,6 +8,10 @@ class CategoryCreate(BaseModel):
     name: str
 
 
+class CategoryUpdate(BaseModel):
+    name: str
+
+
 class CategoryResponse(BaseModel):
     id: UUID
     name: str
