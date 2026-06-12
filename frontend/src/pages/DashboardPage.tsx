@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 
-import { getCategories } from "../api/categories";
+import {
+  createCategory,
+  deleteCategory,
+  getCategories,
+  updateCategory,
+} from "../api/categories";
 import { getCategorySummary, getMonthlySummary } from "../api/dashboard";
 import { createTransaction, getTransactions } from "../api/transactions";
 import type { Category } from "../types/category";
@@ -19,6 +24,13 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
   const [categorySummary, setCategorySummary] = useState<CategorySummary[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
+    null,
+  );
+  const [editingCategoryName, setEditingCategoryName] = useState("");
+  const [isCategorySubmitting, setIsCategorySubmitting] = useState(false);
 
   const [type, setType] = useState<"income" | "expense">("expense");
   const [categoryId, setCategoryId] = useState("");
@@ -74,6 +86,13 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
       if (!categoryId && categoryData.length > 0) {
         setCategoryId(categoryData[0].id);
       }
+
+      if (
+        categoryId &&
+        !categoryData.some((category) => category.id === categoryId)
+      ) {
+        setCategoryId(categoryData[0]?.id ?? "");
+      }
     } catch (error) {
       if (error instanceof Error) {
         setErrorMessage(error.message);
@@ -85,10 +104,128 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
     }
   };
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
   useEffect(() => {
     fetchDashboardData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleCreateCategory = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const token = getToken();
+
+    if (!token) {
+      setErrorMessage("Login is required.");
+      return;
+    }
+
+    const trimmedName = newCategoryName.trim();
+
+    if (!trimmedName) {
+      setErrorMessage("Category name is required.");
+      return;
+    }
+
+    setIsCategorySubmitting(true);
+    setErrorMessage("");
+
+    try {
+      await createCategory(token, trimmedName);
+      setNewCategoryName("");
+
+      await fetchDashboardData();
+    } catch (error) {
+      if (error instanceof Error) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("Failed to create category");
+      }
+    } finally {
+      setIsCategorySubmitting(false);
+    }
+  };
+
+  const startEditCategory = (category: Category) => {
+    setEditingCategoryId(category.id);
+    setEditingCategoryName(category.name);
+  };
+
+  const cancelEditCategory = () => {
+    setEditingCategoryId(null);
+    setEditingCategoryName("");
+  };
+
+  const handleUpdateCategory = async (targetCategoryId: string) => {
+    const token = getToken();
+
+    if (!token) {
+      setErrorMessage("Login is required.");
+      return;
+    }
+
+    const trimmedName = editingCategoryName.trim();
+
+    if (!trimmedName) {
+      setErrorMessage("Category name is required.");
+      return;
+    }
+
+    setIsCategorySubmitting(true);
+    setErrorMessage("");
+
+    try {
+      await updateCategory(token, targetCategoryId, trimmedName);
+
+      setEditingCategoryId(null);
+      setEditingCategoryName("");
+
+      await fetchDashboardData();
+    } catch (error) {
+      if (error instanceof Error) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("Failed to update category");
+      }
+    } finally {
+      setIsCategorySubmitting(false);
+    }
+  };
+
+  const handleDeleteCategory = async (targetCategoryId: string) => {
+    const token = getToken();
+
+    if (!token) {
+      setErrorMessage("Login is required.");
+      return;
+    }
+
+    const shouldDelete = window.confirm("Delete this category?");
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    setIsCategorySubmitting(true);
+    setErrorMessage("");
+
+    try {
+      await deleteCategory(token, targetCategoryId);
+
+      if (categoryId === targetCategoryId) {
+        setCategoryId("");
+      }
+
+      await fetchDashboardData();
+    } catch (error) {
+      if (error instanceof Error) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("Failed to delete category");
+      }
+    } finally {
+      setIsCategorySubmitting(false);
+    }
+  };
 
   const handleCreateTransaction = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -196,6 +333,112 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
             </div>
           </section>
         )}
+
+        <section className="mt-8 rounded-2xl bg-white p-6 shadow">
+          <div className="mb-5 flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">
+                카테고리 관리
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                수입과 지출을 분류할 카테고리를 관리하세요.
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleCreateCategory} className="flex gap-3">
+            <input
+              type="text"
+              value={newCategoryName}
+              onChange={(event) => setNewCategoryName(event.target.value)}
+              className="flex-1 rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+              placeholder="예: Food, Transport, Shopping"
+            />
+
+            <button
+              type="submit"
+              disabled={isCategorySubmitting}
+              className="rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+            >
+              Add
+            </button>
+          </form>
+
+          {categories.length === 0 ? (
+            <p className="mt-5 text-sm text-slate-500">
+              아직 카테고리가 없습니다.
+            </p>
+          ) : (
+            <div className="mt-5 grid gap-3 md:grid-cols-2">
+              {categories.map((category) => (
+                <div
+                  key={category.id}
+                  className="rounded-xl border border-slate-100 p-4"
+                >
+                  {editingCategoryId === category.id ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={editingCategoryName}
+                        onChange={(event) =>
+                          setEditingCategoryName(event.target.value)
+                        }
+                        className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateCategory(category.id)}
+                        disabled={isCategorySubmitting}
+                        className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:bg-slate-400"
+                      >
+                        Save
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={cancelEditCategory}
+                        className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-slate-900">
+                          {category.name}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          {category.created_at.slice(0, 10)}
+                        </p>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => startEditCategory(category)}
+                          className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCategory(category.id)}
+                          disabled={isCategorySubmitting}
+                          className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-100 disabled:bg-slate-100 disabled:text-slate-400"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
 
         <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_1.4fr]">
           <div className="rounded-2xl bg-white p-6 shadow">
