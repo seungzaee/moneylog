@@ -7,3 +7,14 @@ export interface LoginResponse {
   access_token: string;
   token_type: string;
 }
+
+export interface SignupRequest {
+  email: string;
+  password: string;
+}
+
+export interface SignupResponse {
+  id: string;
+  email: string;
+  created_at: string;
+}

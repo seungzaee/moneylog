@@ -6,9 +6,10 @@ import type { LoginResponse } from "../types/auth";
 
 interface LoginPageProps {
   onLoginSuccess: () => void;
+  onGoToSignup: () => void;
 }
 
-function LoginPage({ onLoginSuccess }: LoginPageProps) {
+function LoginPage({ onLoginSuccess, onGoToSignup }: LoginPageProps) {
   const [email, setEmail] = useState("test@example.com");
   const [password, setPassword] = useState("password123");
   const [errorMessage, setErrorMessage] = useState("");
@@ -76,6 +77,10 @@ function LoginPage({ onLoginSuccess }: LoginPageProps) {
       </form>
 
       {errorMessage && <p>{errorMessage}</p>}
+
+      <button type="button" onClick={onGoToSignup}>
+        Go to Signup
+      </button>
     </main>
   );
 }
