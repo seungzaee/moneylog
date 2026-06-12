@@ -12,6 +12,14 @@ class TransactionCreate(BaseModel):
     transaction_date: date
 
 
+class TransactionUpdate(BaseModel):
+    type: str
+    category_id: UUID
+    amount: int
+    memo: str | None = None
+    transaction_date: date
+
+
 class TransactionCategoryResponse(BaseModel):
     id: UUID
     name: str
