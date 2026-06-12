@@ -1,14 +1,41 @@
+from uuid import UUID
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.security import (
     create_access_token,
+    decode_access_token,
     get_password_hash,
     verify_password,
 )
 from app.models.user import User
-from app.repositories.user_repository import create_user, get_user_by_email
+from app.repositories.user_repository import (
+    create_user,
+    get_user_by_email,
+    get_user_by_id,
+)
 from app.schemas.user import UserCreate, UserLogin
+
+
+def get_current_user_by_token(db: Session, token: str) -> User:
+    user_id = decode_access_token(token)
+
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+        )
+
+    user = get_user_by_id(db, UUID(user_id))
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+        )
+
+    return user
 
 
 def signup(db: Session, user_create: UserCreate) -> User:
