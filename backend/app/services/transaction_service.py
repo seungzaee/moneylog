@@ -66,12 +66,28 @@ def create_user_transaction(
 def get_user_transactions(
     db: Session,
     current_user: User,
+    year: int | None = None,
+    month: int | None = None,
 ) -> list[Transaction]:
+    if year is not None and month is not None:
+        if year < 2000 or year > 2100:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid year",
+            )
+
+        if month < 1 or month > 12:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid month",
+            )
+
     return get_transactions_by_user_id(
         db=db,
         user_id=current_user.id,
+        year=year,
+        month=month,
     )
-
 
 def update_user_transaction(
     db: Session,

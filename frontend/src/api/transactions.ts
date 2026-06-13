@@ -4,8 +4,10 @@ import type {
   TransactionCreateRequest,
 } from "../types/transaction";
 
-export function getTransactions(token: string) {
-  return apiRequest<Transaction[]>("/transactions", {
+export function getTransactions(token: string, year?: number, month?: number) {
+  const query = year && month ? `?year=${year}&month=${month}` : "";
+
+  return apiRequest<Transaction[]>(`/transactions${query}`, {
     token,
   });
 }

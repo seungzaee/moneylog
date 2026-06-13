@@ -30,6 +30,9 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
+  const [selectedYear, setSelectedYear] = useState(2026);
+  const [selectedMonth, setSelectedMonth] = useState(6);
+
   const [newCategoryName, setNewCategoryName] = useState("");
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
     null,
@@ -54,9 +57,6 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const year = 2026;
-  const month = 6;
 
   const formatCurrency = (value: number) => {
     return `${value.toLocaleString()}원`;
@@ -85,10 +85,10 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
     try {
       const [summaryData, categorySummaryData, categoryData, transactionData] =
         await Promise.all([
-          getMonthlySummary(token, year, month),
-          getCategorySummary(token, year, month),
+          getMonthlySummary(token, selectedYear, selectedMonth),
+          getCategorySummary(token, selectedYear, selectedMonth),
           getCategories(token),
-          getTransactions(token),
+          getTransactions(token, selectedYear, selectedMonth),
         ]);
 
       setSummary(summaryData);
@@ -120,7 +120,7 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
   useEffect(() => {
     fetchDashboardData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [selectedYear, selectedMonth]);
 
   const handleCreateCategory = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -395,21 +395,55 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-8">
       <div className="mx-auto max-w-6xl">
-        <header className="mb-8 flex items-center justify-between">
+        <header className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">MoneyLog</h1>
             <p className="mt-1 text-sm text-slate-500">
-              {year}년 {month}월 소비 요약
+              {selectedYear}년 {selectedMonth}월 소비 요약
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
-          >
-            Logout
-          </button>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex gap-2">
+              <select
+                value={selectedYear}
+                onChange={(event) =>
+                  setSelectedYear(Number(event.target.value))
+                }
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+              >
+                {[2024, 2025, 2026, 2027].map((yearOption) => (
+                  <option key={yearOption} value={yearOption}>
+                    {yearOption}년
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={selectedMonth}
+                onChange={(event) =>
+                  setSelectedMonth(Number(event.target.value))
+                }
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+              >
+                {Array.from({ length: 12 }, (_, index) => index + 1).map(
+                  (monthOption) => (
+                    <option key={monthOption} value={monthOption}>
+                      {monthOption}월
+                    </option>
+                  ),
+                )}
+              </select>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+            >
+              Logout
+            </button>
+          </div>
         </header>
 
         {isLoading && (
@@ -711,7 +745,7 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
               카테고리별 지출
             </h2>
             <span className="text-sm text-slate-400">
-              {year}.{String(month).padStart(2, "0")}
+              {selectedYear}.{String(selectedMonth).padStart(2, "0")}
             </span>
           </div>
 

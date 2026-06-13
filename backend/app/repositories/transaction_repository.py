@@ -1,8 +1,20 @@
+from datetime import date
 from uuid import UUID
 
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.transaction import Transaction
+
+
+def get_month_range(year: int, month: int) -> tuple[date, date]:
+    start_date = date(year, month, 1)
+
+    if month == 12:
+        end_date = date(year + 1, 1, 1)
+    else:
+        end_date = date(year, month + 1, 1)
+
+    return start_date, end_date
 
 
 def create_transaction(
@@ -33,12 +45,25 @@ def create_transaction(
 def get_transactions_by_user_id(
     db: Session,
     user_id: UUID,
+    year: int | None = None,
+    month: int | None = None,
 ) -> list[Transaction]:
-    return (
+    query = (
         db.query(Transaction)
         .options(joinedload(Transaction.category))
         .filter(Transaction.user_id == user_id)
-        .order_by(Transaction.transaction_date.desc(), Transaction.created_at.desc())
+    )
+
+    if year is not None and month is not None:
+        start_date, end_date = get_month_range(year, month)
+
+        query = query.filter(
+            Transaction.transaction_date >= start_date,
+            Transaction.transaction_date < end_date,
+        )
+
+    return (
+        query.order_by(Transaction.transaction_date.desc(), Transaction.created_at.desc())
         .all()
     )
 

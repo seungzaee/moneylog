@@ -45,6 +45,8 @@ def create_transaction_api(
 
 @router.get("", response_model=list[TransactionResponse])
 def get_transactions_api(
+    year: int | None = None,
+    month: int | None = None,
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
 ):
@@ -53,8 +55,9 @@ def get_transactions_api(
     return get_user_transactions(
         db=db,
         current_user=current_user,
+        year=year,
+        month=month,
     )
-
 
 @router.patch("/{transaction_id}", response_model=TransactionResponse)
 def update_transaction_api(
