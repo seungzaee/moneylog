@@ -38,34 +38,55 @@ function TransactionForm({
   );
 
   return (
-    <div className="rounded-2xl bg-white p-6 shadow">
-      <h2 className="text-xl font-bold text-slate-900">거래내역 등록</h2>
+    <section className="app-card p-6">
+      <div className="mb-6">
+        <p className="text-sm font-black uppercase tracking-[0.18em] text-slate-400">
+          New Record
+        </p>
+        <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950">
+          거래내역 등록
+        </h2>
+        <p className="mt-2 text-sm font-medium text-slate-500">
+          수입과 지출을 선택하고 거래내역을 추가하세요.
+        </p>
+      </div>
 
-      <form onSubmit={onCreateTransaction} className="mt-5 space-y-4">
+      <form onSubmit={onCreateTransaction} className="space-y-5">
         <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">
-            Type
-          </label>
-          <select
-            value={type}
-            onChange={(event) =>
-              onChangeType(event.target.value as "income" | "expense")
-            }
-            className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="expense">Expense</option>
-            <option value="income">Income</option>
-          </select>
+          <label className="app-label">Type</label>
+          <div className="grid grid-cols-2 rounded-2xl bg-slate-100 p-1">
+            <button
+              type="button"
+              onClick={() => onChangeType("expense")}
+              className={`rounded-xl px-4 py-3 text-sm font-black transition ${
+                type === "expense"
+                  ? "bg-slate-950 text-white shadow"
+                  : "text-slate-500 hover:text-slate-900"
+              }`}
+            >
+              지출
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onChangeType("income")}
+              className={`rounded-xl px-4 py-3 text-sm font-black transition ${
+                type === "income"
+                  ? "bg-slate-950 text-white shadow"
+                  : "text-slate-500 hover:text-slate-900"
+              }`}
+            >
+              수입
+            </button>
+          </div>
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">
-            Category
-          </label>
+          <label className="app-label">Category</label>
           <select
             value={categoryId}
             onChange={(event) => onChangeCategoryId(event.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+            className="app-input w-full"
           >
             {filteredCategories.length === 0 ? (
               <option value="">No {type} categories</option>
@@ -80,52 +101,46 @@ function TransactionForm({
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">
-            Amount
-          </label>
+          <label className="app-label">Amount</label>
           <input
             type="number"
             value={amount}
             onChange={(event) => onChangeAmount(event.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+            className="app-input w-full"
             placeholder="12000"
           />
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">
-            Memo
-          </label>
+          <label className="app-label">Memo</label>
           <input
             type="text"
             value={memo}
             onChange={(event) => onChangeMemo(event.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+            className="app-input w-full"
             placeholder="Lunch"
           />
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">
-            Date
-          </label>
+          <label className="app-label">Date</label>
           <input
             type="date"
             value={transactionDate}
             onChange={(event) => onChangeTransactionDate(event.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+            className="app-input w-full"
           />
         </div>
 
         <button
           type="submit"
           disabled={isSubmitting || filteredCategories.length === 0}
-          className="w-full rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+          className="app-button-primary w-full"
         >
           {isSubmitting ? "Saving..." : "Add transaction"}
         </button>
       </form>
-    </div>
+    </section>
   );
 }
 

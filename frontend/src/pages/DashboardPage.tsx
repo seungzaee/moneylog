@@ -17,13 +17,15 @@ import {
   getTransactions,
   updateTransaction,
 } from "../api/transactions";
+import AssetTrendChart from "../components/dashboard/AssetTrendChart";
 import CategoryExpenseSummary from "../components/dashboard/CategoryExpenseSummary";
 import CategoryManager from "../components/dashboard/CategoryManager";
-import DashboardHeader from "../components/dashboard/DashboardHeader";
 import SummaryCards from "../components/dashboard/SummaryCards";
 import TransactionEditModal from "../components/dashboard/TransactionEditModal";
 import TransactionForm from "../components/dashboard/TransactionForm";
 import TransactionList from "../components/dashboard/TransactionList";
+import AppSidebar from "../components/layout/AppSidebar";
+import AppTopbar from "../components/layout/AppTopbar";
 import type { Category, CategoryType } from "../types/category";
 import type { CategorySummary, MonthlySummary } from "../types/dashboard";
 import type { Transaction } from "../types/transaction";
@@ -32,6 +34,9 @@ import { formatRemainingTime, getTokenRemainingSeconds } from "../utils/auth";
 interface DashboardPageProps {
   onLogout: () => void;
 }
+
+type DashboardView = "overview" | "transactions" | "categories";
+type ThemeMode = "light" | "dark";
 
 const getTodayDateInput = () => {
   const today = new Date();
@@ -43,14 +48,34 @@ const getTodayDateInput = () => {
   return `${year}-${month}-${day}`;
 };
 
+const getCurrentYear = () => {
+  return new Date().getFullYear();
+};
+
+const getCurrentMonth = () => {
+  return new Date().getMonth() + 1;
+};
+
 function DashboardPage({ onLogout }: DashboardPageProps) {
   const [summary, setSummary] = useState<MonthlySummary | null>(null);
   const [categorySummary, setCategorySummary] = useState<CategorySummary[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
-  const [selectedYear, setSelectedYear] = useState(2026);
-  const [selectedMonth, setSelectedMonth] = useState(6);
+  const [selectedYear, setSelectedYear] = useState(getCurrentYear());
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
+  const [activeView, setActiveView] = useState<DashboardView>("overview");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    const savedTheme = localStorage.getItem("theme");
+
+    if (savedTheme === "dark" || savedTheme === "light") {
+      return savedTheme;
+    }
+
+    return "light";
+  });
 
   const [selectedCategoryType, setSelectedCategoryType] =
     useState<CategoryType>("expense");
@@ -91,6 +116,16 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
   const handleLogout = () => {
     localStorage.removeItem("access_token");
     onLogout();
+  };
+
+  const handleToggleTheme = () => {
+    setTheme((prev) => {
+      const nextTheme = prev === "light" ? "dark" : "light";
+
+      localStorage.setItem("theme", nextTheme);
+
+      return nextTheme;
+    });
   };
 
   const isAuthError = (error: Error) => {
@@ -584,83 +619,166 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
   };
 
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-8">
-      <div className="mx-auto max-w-6xl">
-        <DashboardHeader
-          selectedYear={selectedYear}
-          selectedMonth={selectedMonth}
-          remainingTimeText={formatRemainingTime(remainingSeconds)}
-          isSessionExpiringSoon={remainingSeconds <= 300}
-          isExtendingSession={isExtendingSession}
-          onChangeYear={setSelectedYear}
-          onChangeMonth={setSelectedMonth}
-          onExtendSession={handleExtendSession}
-          onLogout={handleLogout}
+    <main className={`${theme === "dark" ? "dark " : ""}app-shell`}>
+      {" "}
+      <AppTopbar
+        theme={theme}
+        remainingTimeText={formatRemainingTime(remainingSeconds)}
+        isSessionExpiringSoon={remainingSeconds <= 300}
+        isExtendingSession={isExtendingSession}
+        onToggleTheme={handleToggleTheme}
+        onExtendSession={handleExtendSession}
+        onLogout={handleLogout}
+      />
+      <div className="flex">
+        <AppSidebar
+          activeView={activeView}
+          isOpen={isSidebarOpen}
+          onToggle={() => setIsSidebarOpen((prev) => !prev)}
+          onChangeView={setActiveView}
         />
 
-        {isLoading && (
-          <div className="mb-6 rounded-xl bg-white p-6 text-slate-500 shadow">
-            Loading dashboard...
+        <div className="min-w-0 flex-1 px-5 py-8">
+          <div className="mx-auto max-w-6xl">
+            {isLoading && (
+              <div className="app-card mb-6 p-6 text-slate-500">
+                Loading dashboard...
+              </div>
+            )}
+
+            {errorMessage && (
+              <div className="mb-6 rounded-2xl border border-red-100 bg-red-50/90 p-4 text-sm font-semibold text-red-600 shadow-sm">
+                {errorMessage}
+              </div>
+            )}
+
+            <section className="app-card mb-6 flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.18em] text-slate-400">
+                  {activeView === "overview" && "Dashboard"}
+                  {activeView === "transactions" && "Transactions"}
+                  {activeView === "categories" && "Categories"}
+                </p>
+
+                <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
+                  {activeView === "overview" &&
+                    `${selectedYear}년 ${selectedMonth}월 요약`}
+                  {activeView === "transactions" &&
+                    `${selectedYear}년 ${selectedMonth}월 거래내역`}
+                  {activeView === "categories" && "카테고리 관리"}
+                </h2>
+
+                <p className="mt-2 text-sm font-medium text-slate-500">
+                  {activeView === "overview" &&
+                    "선택한 월의 수입, 지출, 잔액 흐름을 확인하세요."}
+                  {activeView === "transactions" &&
+                    "거래내역을 등록하고 수정하거나 삭제할 수 있습니다."}
+                  {activeView === "categories" &&
+                    "수입과 지출 카테고리를 구분해서 관리하세요."}
+                </p>
+              </div>
+
+              {activeView !== "categories" && (
+                <div className="flex gap-2">
+                  <select
+                    value={selectedYear}
+                    onChange={(event) =>
+                      setSelectedYear(Number(event.target.value))
+                    }
+                    className="app-input w-32 py-2"
+                  >
+                    {[2024, 2025, 2026, 2027].map((yearOption) => (
+                      <option key={yearOption} value={yearOption}>
+                        {yearOption}년
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={selectedMonth}
+                    onChange={(event) =>
+                      setSelectedMonth(Number(event.target.value))
+                    }
+                    className="app-input w-28 py-2"
+                  >
+                    {Array.from({ length: 12 }, (_, index) => index + 1).map(
+                      (monthOption) => (
+                        <option key={monthOption} value={monthOption}>
+                          {monthOption}월
+                        </option>
+                      ),
+                    )}
+                  </select>
+                </div>
+              )}
+            </section>
+
+            {activeView === "overview" && (
+              <>
+                <SummaryCards summary={summary} />
+
+                <AssetTrendChart
+                  transactions={transactions}
+                  selectedYear={selectedYear}
+                  selectedMonth={selectedMonth}
+                />
+
+                <CategoryExpenseSummary
+                  selectedYear={selectedYear}
+                  selectedMonth={selectedMonth}
+                  categorySummary={categorySummary}
+                />
+              </>
+            )}
+
+            {activeView === "transactions" && (
+              <section className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
+                <TransactionForm
+                  categories={categories}
+                  type={type}
+                  categoryId={categoryId}
+                  amount={amount}
+                  memo={memo}
+                  transactionDate={transactionDate}
+                  isSubmitting={isSubmitting}
+                  onChangeType={handleChangeTransactionType}
+                  onChangeCategoryId={setCategoryId}
+                  onChangeAmount={setAmount}
+                  onChangeMemo={setMemo}
+                  onChangeTransactionDate={setTransactionDate}
+                  onCreateTransaction={handleCreateTransaction}
+                />
+
+                <TransactionList
+                  transactions={transactions}
+                  isSubmitting={isSubmitting}
+                  onEditTransaction={openEditTransactionModal}
+                  onDeleteTransaction={handleDeleteTransaction}
+                />
+              </section>
+            )}
+
+            {activeView === "categories" && (
+              <CategoryManager
+                categories={categories}
+                selectedCategoryType={selectedCategoryType}
+                newCategoryName={newCategoryName}
+                editingCategoryId={editingCategoryId}
+                editingCategoryName={editingCategoryName}
+                isCategorySubmitting={isCategorySubmitting}
+                onChangeSelectedCategoryType={setSelectedCategoryType}
+                onChangeNewCategoryName={setNewCategoryName}
+                onChangeEditingCategoryName={setEditingCategoryName}
+                onCreateCategory={handleCreateCategory}
+                onStartEditCategory={startEditCategory}
+                onCancelEditCategory={cancelEditCategory}
+                onUpdateCategory={handleUpdateCategory}
+                onDeleteCategory={handleDeleteCategory}
+              />
+            )}
           </div>
-        )}
-
-        {errorMessage && (
-          <div className="mb-6 rounded-xl bg-red-50 p-4 text-sm text-red-600">
-            {errorMessage}
-          </div>
-        )}
-
-        <SummaryCards summary={summary} />
-
-        <CategoryManager
-          categories={categories}
-          selectedCategoryType={selectedCategoryType}
-          newCategoryName={newCategoryName}
-          editingCategoryId={editingCategoryId}
-          editingCategoryName={editingCategoryName}
-          isCategorySubmitting={isCategorySubmitting}
-          onChangeSelectedCategoryType={setSelectedCategoryType}
-          onChangeNewCategoryName={setNewCategoryName}
-          onChangeEditingCategoryName={setEditingCategoryName}
-          onCreateCategory={handleCreateCategory}
-          onStartEditCategory={startEditCategory}
-          onCancelEditCategory={cancelEditCategory}
-          onUpdateCategory={handleUpdateCategory}
-          onDeleteCategory={handleDeleteCategory}
-        />
-
-        <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_1.4fr]">
-          <TransactionForm
-            categories={categories}
-            type={type}
-            categoryId={categoryId}
-            amount={amount}
-            memo={memo}
-            transactionDate={transactionDate}
-            isSubmitting={isSubmitting}
-            onChangeType={handleChangeTransactionType}
-            onChangeCategoryId={setCategoryId}
-            onChangeAmount={setAmount}
-            onChangeMemo={setMemo}
-            onChangeTransactionDate={setTransactionDate}
-            onCreateTransaction={handleCreateTransaction}
-          />
-
-          <TransactionList
-            transactions={transactions}
-            isSubmitting={isSubmitting}
-            onEditTransaction={openEditTransactionModal}
-            onDeleteTransaction={handleDeleteTransaction}
-          />
-        </section>
-
-        <CategoryExpenseSummary
-          selectedYear={selectedYear}
-          selectedMonth={selectedMonth}
-          categorySummary={categorySummary}
-        />
+        </div>
       </div>
-
       <TransactionEditModal
         editingTransaction={editingTransaction}
         categories={categories}

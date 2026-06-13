@@ -1,1 +1,283 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
 @import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  font-family:
+    "Pretendard",
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  color: #020617;
+  background: #f8fafc;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: #f8fafc;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+input,
+select,
+textarea {
+  color: #020617;
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  color: #f8fafc;
+}
+
+::selection {
+  background: #0f172a;
+  color: white;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+@layer components {
+  .app-shell {
+    min-height: 100vh;
+    background:
+      radial-gradient(
+        circle at top left,
+        rgba(125, 211, 252, 0.35),
+        transparent 28rem
+      ),
+      radial-gradient(
+        circle at 80% 10%,
+        rgba(199, 210, 254, 0.45),
+        transparent 30rem
+      ),
+      linear-gradient(135deg, #f8fafc 0%, #eef2ff 45%, #f8fafc 100%);
+    color: #020617;
+  }
+
+  .dark.app-shell {
+    background:
+      radial-gradient(
+        circle at top left,
+        rgba(59, 130, 246, 0.18),
+        transparent 30rem
+      ),
+      radial-gradient(
+        circle at 80% 10%,
+        rgba(99, 102, 241, 0.14),
+        transparent 28rem
+      ),
+      linear-gradient(135deg, #020617 0%, #0f172a 48%, #111827 100%);
+    color: #f8fafc;
+  }
+
+  .app-card {
+    @apply rounded-[2rem] border border-white/70 bg-white/85 shadow-xl shadow-slate-200/60 backdrop-blur;
+  }
+
+  .dark .app-card {
+    @apply border-white/10 bg-slate-900/80 shadow-black/30;
+  }
+
+  .app-card-soft {
+    @apply rounded-[1.5rem] border border-slate-200/70 bg-white/80 shadow-sm shadow-slate-200/70 backdrop-blur;
+  }
+
+  .dark .app-card-soft {
+    @apply border-white/10 bg-slate-900/70 shadow-black/20;
+  }
+
+  .app-input {
+    @apply rounded-xl border border-slate-200 bg-white/90 px-4 py-3 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-900 focus:ring-4 focus:ring-slate-200/70;
+  }
+
+  .dark .app-input {
+    @apply border-white/10 bg-slate-950/70 text-slate-100 placeholder:text-slate-500 focus:border-indigo-300 focus:ring-indigo-500/20;
+  }
+
+  .app-button-primary {
+    @apply rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-md disabled:translate-y-0 disabled:bg-slate-400 disabled:shadow-none;
+  }
+
+  .dark .app-button-primary {
+    @apply bg-white text-slate-950 hover:bg-slate-100 disabled:bg-slate-600 disabled:text-slate-300;
+  }
+
+  .app-button-secondary {
+    @apply rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow disabled:translate-y-0 disabled:text-slate-400 disabled:shadow-none;
+  }
+
+  .dark .app-button-secondary {
+    @apply border-white/10 bg-white/10 text-slate-200 hover:bg-white/15 disabled:text-slate-500;
+  }
+
+  .app-button-danger {
+    @apply rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-600 transition hover:bg-red-100 disabled:bg-slate-100 disabled:text-slate-400;
+  }
+
+  .dark .app-button-danger {
+    @apply bg-red-500/10 text-red-300 hover:bg-red-500/20 disabled:bg-white/10 disabled:text-slate-500;
+  }
+
+  .app-label {
+    @apply mb-2 block text-sm font-bold text-slate-700;
+  }
+
+  .dark .app-label {
+    @apply text-slate-300;
+  }
+
+  .app-muted {
+    @apply text-sm font-medium text-slate-500;
+  }
+
+  .dark .app-muted {
+    @apply text-slate-400;
+  }
+
+  .app-topbar {
+    @apply sticky top-0 z-40 border-b border-white/70 bg-white/80 px-5 py-3 shadow-sm shadow-slate-200/40 backdrop-blur-xl;
+  }
+
+  .dark .app-topbar {
+    @apply border-white/10 bg-slate-950/80 shadow-black/30;
+  }
+
+  .app-sidebar {
+    @apply sticky top-[69px] h-[calc(100vh-69px)] shrink-0 border-r border-white/70 bg-white/55 text-slate-950 shadow-xl shadow-slate-200/40 backdrop-blur-xl transition-all duration-300;
+  }
+
+  .dark .app-sidebar {
+    @apply border-white/10 bg-slate-950/80 text-white shadow-black/30;
+  }
+
+  .app-sidebar-control {
+    @apply mb-6 flex h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white/70 text-sm font-black text-slate-600 shadow-sm transition hover:bg-white;
+  }
+
+  .dark .app-sidebar-control {
+    @apply border-white/10 bg-white/10 text-slate-200 hover:bg-white/15;
+  }
+
+  .app-sidebar-item {
+    @apply flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition;
+  }
+
+  .app-sidebar-item-active {
+    @apply bg-slate-950 text-white shadow-xl shadow-slate-300/40;
+  }
+
+  .dark .app-sidebar-item-active {
+    @apply bg-white text-slate-950 shadow-black/20;
+  }
+
+  .app-sidebar-item-idle {
+    @apply text-slate-500 hover:bg-white/70 hover:text-slate-950;
+  }
+
+  .dark .app-sidebar-item-idle {
+    @apply text-slate-300 hover:bg-white/10 hover:text-white;
+  }
+
+  .app-sidebar-icon {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-black transition;
+  }
+
+  .app-sidebar-icon-active {
+    @apply bg-white text-slate-950;
+  }
+
+  .dark .app-sidebar-icon-active {
+    @apply bg-slate-950 text-white;
+  }
+
+  .app-sidebar-icon-idle {
+    @apply bg-slate-100 text-slate-500;
+  }
+
+  .dark .app-sidebar-icon-idle {
+    @apply bg-white/10 text-slate-200;
+  }
+
+  .app-sidebar-item-idle:hover .app-sidebar-icon-idle {
+    @apply bg-white;
+  }
+
+  .dark .app-sidebar-item-idle:hover .app-sidebar-icon-idle {
+    @apply bg-white/15;
+  }
+
+  .app-sidebar-note {
+    @apply mt-auto overflow-hidden rounded-3xl border border-white/70 bg-white/60 p-4 shadow-lg shadow-slate-200/50;
+  }
+
+  .dark .app-sidebar-note {
+    @apply border-white/10 bg-white/[0.07] shadow-black/20;
+  }
+}
