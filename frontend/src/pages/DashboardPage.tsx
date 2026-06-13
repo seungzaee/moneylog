@@ -24,7 +24,7 @@ import SummaryCards from "../components/dashboard/SummaryCards";
 import TransactionEditModal from "../components/dashboard/TransactionEditModal";
 import TransactionForm from "../components/dashboard/TransactionForm";
 import TransactionList from "../components/dashboard/TransactionList";
-import type { Category } from "../types/category";
+import type { Category, CategoryType } from "../types/category";
 import type { CategorySummary, MonthlySummary } from "../types/dashboard";
 import type { Transaction } from "../types/transaction";
 import { formatRemainingTime, getTokenRemainingSeconds } from "../utils/auth";
@@ -41,6 +41,9 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
 
   const [selectedYear, setSelectedYear] = useState(2026);
   const [selectedMonth, setSelectedMonth] = useState(6);
+
+  const [selectedCategoryType, setSelectedCategoryType] =
+    useState<CategoryType>("expense");
 
   const [newCategoryName, setNewCategoryName] = useState("");
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
@@ -79,6 +82,13 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
     onLogout();
   };
 
+  const isAuthError = (error: Error) => {
+    return (
+      error.message === "Invalid authentication credentials" ||
+      error.message === "Not authenticated"
+    );
+  };
+
   const fetchDashboardData = async () => {
     const token = getToken();
 
@@ -105,22 +115,23 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
       setCategories(categoryData);
       setTransactions(transactionData);
 
-      if (!categoryId && categoryData.length > 0) {
-        setCategoryId(categoryData[0].id);
+      const currentTypeCategories = categoryData.filter(
+        (category) => category.type === type,
+      );
+
+      if (!categoryId && currentTypeCategories.length > 0) {
+        setCategoryId(currentTypeCategories[0].id);
       }
 
       if (
         categoryId &&
-        !categoryData.some((category) => category.id === categoryId)
+        !currentTypeCategories.some((category) => category.id === categoryId)
       ) {
-        setCategoryId(categoryData[0]?.id ?? "");
+        setCategoryId(currentTypeCategories[0]?.id ?? "");
       }
     } catch (error) {
       if (error instanceof Error) {
-        if (
-          error.message === "Invalid authentication credentials" ||
-          error.message === "Not authenticated"
-        ) {
+        if (isAuthError(error)) {
           handleLogout();
           return;
         }
@@ -215,16 +226,22 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
     setErrorMessage("");
 
     try {
-      await createCategory(token, trimmedName);
+      const createdCategory = await createCategory(
+        token,
+        trimmedName,
+        selectedCategoryType,
+      );
+
       setNewCategoryName("");
+
+      if (type === createdCategory.type) {
+        setCategoryId(createdCategory.id);
+      }
 
       await fetchDashboardData();
     } catch (error) {
       if (error instanceof Error) {
-        if (
-          error.message === "Invalid authentication credentials" ||
-          error.message === "Not authenticated"
-        ) {
+        if (isAuthError(error)) {
           handleLogout();
           return;
         }
@@ -248,7 +265,7 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
     setEditingCategoryName("");
   };
 
-  const handleUpdateCategory = async (targetCategoryId: string) => {
+  const handleUpdateCategory = async (category: Category) => {
     const token = getToken();
 
     if (!token) {
@@ -268,7 +285,7 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
     setErrorMessage("");
 
     try {
-      await updateCategory(token, targetCategoryId, trimmedName);
+      await updateCategory(token, category.id, trimmedName, category.type);
 
       setEditingCategoryId(null);
       setEditingCategoryName("");
@@ -276,10 +293,7 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
       await fetchDashboardData();
     } catch (error) {
       if (error instanceof Error) {
-        if (
-          error.message === "Invalid authentication credentials" ||
-          error.message === "Not authenticated"
-        ) {
+        if (isAuthError(error)) {
           handleLogout();
           return;
         }
@@ -321,10 +335,7 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
       await fetchDashboardData();
     } catch (error) {
       if (error instanceof Error) {
-        if (
-          error.message === "Invalid authentication credentials" ||
-          error.message === "Not authenticated"
-        ) {
+        if (isAuthError(error)) {
           handleLogout();
           return;
         }
@@ -338,10 +349,38 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
     }
   };
 
+  const handleChangeTransactionType = (newType: "income" | "expense") => {
+    setType(newType);
+
+    const firstCategory = categories.find(
+      (category) => category.type === newType,
+    );
+
+    setCategoryId(firstCategory?.id ?? "");
+  };
+
+  const handleChangeEditTransactionType = (newType: "income" | "expense") => {
+    setEditType(newType);
+
+    const firstCategory = categories.find(
+      (category) => category.type === newType,
+    );
+
+    setEditCategoryId(firstCategory?.id ?? "");
+  };
+
   const openEditTransactionModal = (transaction: Transaction) => {
+    const matchedCategory =
+      categories.find((category) => category.id === transaction.category.id) ??
+      null;
+
+    const fallbackCategory = categories.find(
+      (category) => category.type === transaction.type,
+    );
+
     setEditingTransaction(transaction);
     setEditType(transaction.type);
-    setEditCategoryId(transaction.category.id);
+    setEditCategoryId(matchedCategory?.id ?? fallbackCategory?.id ?? "");
     setEditAmount(String(transaction.amount));
     setEditMemo(transaction.memo ?? "");
     setEditTransactionDate(transaction.transaction_date);
@@ -372,6 +411,15 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
       return;
     }
 
+    const selectedCategory = categories.find(
+      (category) => category.id === categoryId,
+    );
+
+    if (!selectedCategory || selectedCategory.type !== type) {
+      setErrorMessage("Please select a valid category.");
+      return;
+    }
+
     const parsedAmount = Number(amount);
 
     if (!amount || Number.isNaN(parsedAmount) || parsedAmount <= 0) {
@@ -395,13 +443,15 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
       setMemo("");
       setType("expense");
 
+      const firstExpenseCategory = categories.find(
+        (category) => category.type === "expense",
+      );
+      setCategoryId(firstExpenseCategory?.id ?? "");
+
       await fetchDashboardData();
     } catch (error) {
       if (error instanceof Error) {
-        if (
-          error.message === "Invalid authentication credentials" ||
-          error.message === "Not authenticated"
-        ) {
+        if (isAuthError(error)) {
           handleLogout();
           return;
         }
@@ -431,6 +481,15 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
       return;
     }
 
+    const selectedCategory = categories.find(
+      (category) => category.id === editCategoryId,
+    );
+
+    if (!selectedCategory || selectedCategory.type !== editType) {
+      setErrorMessage("Please select a valid category.");
+      return;
+    }
+
     const parsedAmount = Number(editAmount);
 
     if (!editAmount || Number.isNaN(parsedAmount) || parsedAmount <= 0) {
@@ -455,10 +514,7 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
       await fetchDashboardData();
     } catch (error) {
       if (error instanceof Error) {
-        if (
-          error.message === "Invalid authentication credentials" ||
-          error.message === "Not authenticated"
-        ) {
+        if (isAuthError(error)) {
           handleLogout();
           return;
         }
@@ -500,10 +556,7 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
       await fetchDashboardData();
     } catch (error) {
       if (error instanceof Error) {
-        if (
-          error.message === "Invalid authentication credentials" ||
-          error.message === "Not authenticated"
-        ) {
+        if (isAuthError(error)) {
           handleLogout();
           return;
         }
@@ -548,10 +601,12 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
 
         <CategoryManager
           categories={categories}
+          selectedCategoryType={selectedCategoryType}
           newCategoryName={newCategoryName}
           editingCategoryId={editingCategoryId}
           editingCategoryName={editingCategoryName}
           isCategorySubmitting={isCategorySubmitting}
+          onChangeSelectedCategoryType={setSelectedCategoryType}
           onChangeNewCategoryName={setNewCategoryName}
           onChangeEditingCategoryName={setEditingCategoryName}
           onCreateCategory={handleCreateCategory}
@@ -570,7 +625,7 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
             memo={memo}
             transactionDate={transactionDate}
             isSubmitting={isSubmitting}
-            onChangeType={setType}
+            onChangeType={handleChangeTransactionType}
             onChangeCategoryId={setCategoryId}
             onChangeAmount={setAmount}
             onChangeMemo={setMemo}
@@ -602,7 +657,7 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
         editMemo={editMemo}
         editTransactionDate={editTransactionDate}
         isSubmitting={isSubmitting}
-        onChangeEditType={setEditType}
+        onChangeEditType={handleChangeEditTransactionType}
         onChangeEditCategoryId={setEditCategoryId}
         onChangeEditAmount={setEditAmount}
         onChangeEditMemo={setEditMemo}

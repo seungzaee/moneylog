@@ -1,5 +1,5 @@
 import { apiRequest } from "./client";
-import type { Category } from "../types/category";
+import type { Category, CategoryType } from "../types/category";
 
 export function getCategories(token: string) {
   return apiRequest<Category[]>("/categories", {
@@ -7,12 +7,17 @@ export function getCategories(token: string) {
   });
 }
 
-export function createCategory(token: string, name: string) {
+export function createCategory(
+  token: string,
+  name: string,
+  type: CategoryType,
+) {
   return apiRequest<Category>("/categories", {
     method: "POST",
     token,
     body: {
       name,
+      type,
     },
   });
 }
@@ -21,12 +26,14 @@ export function updateCategory(
   token: string,
   categoryId: string,
   name: string,
+  type: CategoryType,
 ) {
   return apiRequest<Category>(`/categories/${categoryId}`, {
     method: "PATCH",
     token,
     body: {
       name,
+      type,
     },
   });
 }

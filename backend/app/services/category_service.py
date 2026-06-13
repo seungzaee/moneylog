@@ -10,10 +10,17 @@ from app.repositories.category_repository import (
     delete_category,
     get_categories_by_user_id,
     get_category_by_id_and_user_id,
-    get_category_by_name_and_user_id,
     update_category,
 )
 from app.schemas.category import CategoryCreate, CategoryUpdate
+
+
+def validate_category_type(category_type: str) -> None:
+    if category_type not in ["income", "expense"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid category type",
+        )
 
 
 def create_user_category(
@@ -21,22 +28,13 @@ def create_user_category(
     current_user: User,
     category_create: CategoryCreate,
 ) -> Category:
-    existing_category = get_category_by_name_and_user_id(
-        db=db,
-        user_id=current_user.id,
-        name=category_create.name,
-    )
-
-    if existing_category:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Category already exists",
-        )
+    validate_category_type(category_create.type)
 
     return create_category(
         db=db,
         user_id=current_user.id,
         name=category_create.name,
+        type=category_create.type,
     )
 
 
@@ -56,6 +54,8 @@ def update_user_category(
     category_id: UUID,
     category_update: CategoryUpdate,
 ) -> Category:
+    validate_category_type(category_update.type)
+
     category = get_category_by_id_and_user_id(
         db=db,
         category_id=category_id,
@@ -68,22 +68,11 @@ def update_user_category(
             detail="Category not found",
         )
 
-    existing_category = get_category_by_name_and_user_id(
-        db=db,
-        user_id=current_user.id,
-        name=category_update.name,
-    )
-
-    if existing_category and existing_category.id != category.id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Category already exists",
-        )
-
     return update_category(
         db=db,
         category=category,
         name=category_update.name,
+        type=category_update.type,
     )
 
 

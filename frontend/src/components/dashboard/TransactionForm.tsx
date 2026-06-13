@@ -33,6 +33,10 @@ function TransactionForm({
   onChangeTransactionDate,
   onCreateTransaction,
 }: TransactionFormProps) {
+  const filteredCategories = categories.filter(
+    (category) => category.type === type,
+  );
+
   return (
     <div className="rounded-2xl bg-white p-6 shadow">
       <h2 className="text-xl font-bold text-slate-900">거래내역 등록</h2>
@@ -63,10 +67,10 @@ function TransactionForm({
             onChange={(event) => onChangeCategoryId(event.target.value)}
             className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
           >
-            {categories.length === 0 ? (
-              <option value="">No categories</option>
+            {filteredCategories.length === 0 ? (
+              <option value="">No {type} categories</option>
             ) : (
-              categories.map((category) => (
+              filteredCategories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
                 </option>
@@ -115,7 +119,7 @@ function TransactionForm({
 
         <button
           type="submit"
-          disabled={isSubmitting || categories.length === 0}
+          disabled={isSubmitting || filteredCategories.length === 0}
           className="w-full rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
         >
           {isSubmitting ? "Saving..." : "Add transaction"}

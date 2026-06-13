@@ -42,6 +42,10 @@ function TransactionEditModal({
     return null;
   }
 
+  const filteredCategories = categories.filter(
+    (category) => category.type === editType,
+  );
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
@@ -83,11 +87,15 @@ function TransactionEditModal({
               onChange={(event) => onChangeEditCategoryId(event.target.value)}
               className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
             >
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
+              {filteredCategories.length === 0 ? (
+                <option value="">No {editType} categories</option>
+              ) : (
+                filteredCategories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))
+              )}
             </select>
           </div>
 
@@ -140,8 +148,8 @@ function TransactionEditModal({
 
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="flex-1 rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:bg-slate-400"
+              disabled={isSubmitting || filteredCategories.length === 0}
+              className="flex-1 rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
             >
               {isSubmitting ? "Saving..." : "Save"}
             </button>

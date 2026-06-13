@@ -5,10 +5,16 @@ from sqlalchemy.orm import Session
 from app.models.category import Category
 
 
-def create_category(db: Session, user_id: UUID, name: str) -> Category:
+def create_category(
+    db: Session,
+    user_id: UUID,
+    name: str,
+    type: str,
+) -> Category:
     category = Category(
         user_id=user_id,
         name=name,
+        type=type,
     )
 
     db.add(category)
@@ -18,7 +24,10 @@ def create_category(db: Session, user_id: UUID, name: str) -> Category:
     return category
 
 
-def get_categories_by_user_id(db: Session, user_id: UUID) -> list[Category]:
+def get_categories_by_user_id(
+    db: Session,
+    user_id: UUID,
+) -> list[Category]:
     return (
         db.query(Category)
         .filter(Category.user_id == user_id)
@@ -42,27 +51,14 @@ def get_category_by_id_and_user_id(
     )
 
 
-def get_category_by_name_and_user_id(
-    db: Session,
-    user_id: UUID,
-    name: str,
-) -> Category | None:
-    return (
-        db.query(Category)
-        .filter(
-            Category.user_id == user_id,
-            Category.name == name,
-        )
-        .first()
-    )
-
-
 def update_category(
     db: Session,
     category: Category,
     name: str,
+    type: str,
 ) -> Category:
     category.name = name
+    category.type = type
 
     db.commit()
     db.refresh(category)
