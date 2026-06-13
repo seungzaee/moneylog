@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 
+import { refreshToken } from "../api/auth";
 import {
   createCategory,
   deleteCategory,
@@ -26,6 +27,7 @@ import TransactionList from "../components/dashboard/TransactionList";
 import type { Category } from "../types/category";
 import type { CategorySummary, MonthlySummary } from "../types/dashboard";
 import type { Transaction } from "../types/transaction";
+import { formatRemainingTime, getTokenRemainingSeconds } from "../utils/auth";
 
 interface DashboardPageProps {
   onLogout: () => void;
@@ -65,6 +67,9 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [isExtendingSession, setIsExtendingSession] = useState(false);
+
   const getToken = () => {
     return localStorage.getItem("access_token");
   };
@@ -79,6 +84,7 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
 
     if (!token) {
       setErrorMessage("Login is required.");
+      handleLogout();
       return;
     }
 
@@ -111,6 +117,14 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
       }
     } catch (error) {
       if (error instanceof Error) {
+        if (
+          error.message === "Invalid authentication credentials" ||
+          error.message === "Not authenticated"
+        ) {
+          handleLogout();
+          return;
+        }
+
         setErrorMessage(error.message);
       } else {
         setErrorMessage("Failed to load dashboard data");
@@ -125,6 +139,60 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedYear, selectedMonth]);
 
+  useEffect(() => {
+    const updateRemainingTime = () => {
+      const token = getToken();
+
+      if (!token) {
+        setRemainingSeconds(0);
+        handleLogout();
+        return;
+      }
+
+      const seconds = getTokenRemainingSeconds(token);
+
+      setRemainingSeconds(seconds);
+
+      if (seconds <= 0) {
+        handleLogout();
+      }
+    };
+
+    updateRemainingTime();
+
+    const timerId = window.setInterval(updateRemainingTime, 1000);
+
+    return () => {
+      window.clearInterval(timerId);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleExtendSession = async () => {
+    const token = getToken();
+
+    if (!token) {
+      handleLogout();
+      return;
+    }
+
+    setIsExtendingSession(true);
+    setErrorMessage("");
+
+    try {
+      const data = await refreshToken(token);
+
+      localStorage.setItem("access_token", data.access_token);
+
+      const seconds = getTokenRemainingSeconds(data.access_token);
+      setRemainingSeconds(seconds);
+    } catch {
+      handleLogout();
+    } finally {
+      setIsExtendingSession(false);
+    }
+  };
+
   const handleCreateCategory = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -132,6 +200,7 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
 
     if (!token) {
       setErrorMessage("Login is required.");
+      handleLogout();
       return;
     }
 
@@ -152,6 +221,14 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
       await fetchDashboardData();
     } catch (error) {
       if (error instanceof Error) {
+        if (
+          error.message === "Invalid authentication credentials" ||
+          error.message === "Not authenticated"
+        ) {
+          handleLogout();
+          return;
+        }
+
         setErrorMessage(error.message);
       } else {
         setErrorMessage("Failed to create category");
@@ -176,6 +253,7 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
 
     if (!token) {
       setErrorMessage("Login is required.");
+      handleLogout();
       return;
     }
 
@@ -198,6 +276,14 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
       await fetchDashboardData();
     } catch (error) {
       if (error instanceof Error) {
+        if (
+          error.message === "Invalid authentication credentials" ||
+          error.message === "Not authenticated"
+        ) {
+          handleLogout();
+          return;
+        }
+
         setErrorMessage(error.message);
       } else {
         setErrorMessage("Failed to update category");
@@ -212,6 +298,7 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
 
     if (!token) {
       setErrorMessage("Login is required.");
+      handleLogout();
       return;
     }
 
@@ -234,6 +321,14 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
       await fetchDashboardData();
     } catch (error) {
       if (error instanceof Error) {
+        if (
+          error.message === "Invalid authentication credentials" ||
+          error.message === "Not authenticated"
+        ) {
+          handleLogout();
+          return;
+        }
+
         setErrorMessage(error.message);
       } else {
         setErrorMessage("Failed to delete category");
@@ -268,6 +363,7 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
 
     if (!token) {
       setErrorMessage("Login is required.");
+      handleLogout();
       return;
     }
 
@@ -302,6 +398,14 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
       await fetchDashboardData();
     } catch (error) {
       if (error instanceof Error) {
+        if (
+          error.message === "Invalid authentication credentials" ||
+          error.message === "Not authenticated"
+        ) {
+          handleLogout();
+          return;
+        }
+
         setErrorMessage(error.message);
       } else {
         setErrorMessage("Failed to create transaction");
@@ -318,6 +422,7 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
 
     if (!token || !editingTransaction) {
       setErrorMessage("Login is required.");
+      handleLogout();
       return;
     }
 
@@ -350,6 +455,14 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
       await fetchDashboardData();
     } catch (error) {
       if (error instanceof Error) {
+        if (
+          error.message === "Invalid authentication credentials" ||
+          error.message === "Not authenticated"
+        ) {
+          handleLogout();
+          return;
+        }
+
         setErrorMessage(error.message);
       } else {
         setErrorMessage("Failed to update transaction");
@@ -364,6 +477,7 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
 
     if (!token) {
       setErrorMessage("Login is required.");
+      handleLogout();
       return;
     }
 
@@ -386,6 +500,14 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
       await fetchDashboardData();
     } catch (error) {
       if (error instanceof Error) {
+        if (
+          error.message === "Invalid authentication credentials" ||
+          error.message === "Not authenticated"
+        ) {
+          handleLogout();
+          return;
+        }
+
         setErrorMessage(error.message);
       } else {
         setErrorMessage("Failed to delete transaction");
@@ -401,8 +523,12 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
         <DashboardHeader
           selectedYear={selectedYear}
           selectedMonth={selectedMonth}
+          remainingTimeText={formatRemainingTime(remainingSeconds)}
+          isSessionExpiringSoon={remainingSeconds <= 300}
+          isExtendingSession={isExtendingSession}
           onChangeYear={setSelectedYear}
           onChangeMonth={setSelectedMonth}
+          onExtendSession={handleExtendSession}
           onLogout={handleLogout}
         />
 

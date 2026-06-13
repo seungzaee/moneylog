@@ -38,6 +38,17 @@ def get_current_user_by_token(db: Session, token: str) -> User:
     return user
 
 
+def refresh_access_token(db: Session, token: str) -> dict:
+    user = get_current_user_by_token(db=db, token=token)
+
+    access_token = create_access_token(subject=str(user.id))
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+    }
+
+
 def signup(db: Session, user_create: UserCreate) -> User:
     existing_user = get_user_by_email(db, user_create.email)
 

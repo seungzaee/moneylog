@@ -1,16 +1,24 @@
 interface DashboardHeaderProps {
   selectedYear: number;
   selectedMonth: number;
+  remainingTimeText: string;
+  isSessionExpiringSoon: boolean;
+  isExtendingSession: boolean;
   onChangeYear: (year: number) => void;
   onChangeMonth: (month: number) => void;
+  onExtendSession: () => void;
   onLogout: () => void;
 }
 
 function DashboardHeader({
   selectedYear,
   selectedMonth,
+  remainingTimeText,
+  isSessionExpiringSoon,
+  isExtendingSession,
   onChangeYear,
   onChangeMonth,
+  onExtendSession,
   onLogout,
 }: DashboardHeaderProps) {
   return (
@@ -50,6 +58,25 @@ function DashboardHeader({
             )}
           </select>
         </div>
+
+        <div
+          className={`rounded-lg px-3 py-2 text-sm font-semibold ${
+            isSessionExpiringSoon
+              ? "bg-red-50 text-red-600"
+              : "bg-white text-slate-600"
+          }`}
+        >
+          Session {remainingTimeText}
+        </div>
+
+        <button
+          type="button"
+          onClick={onExtendSession}
+          disabled={isExtendingSession}
+          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
+        >
+          {isExtendingSession ? "Extending..." : "Extend"}
+        </button>
 
         <button
           type="button"
