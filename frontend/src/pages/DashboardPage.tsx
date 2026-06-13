@@ -10,7 +10,11 @@ import {
   getCategories,
   updateCategory,
 } from "../api/categories";
-import { getCategorySummary, getMonthlySummary } from "../api/dashboard";
+import {
+  getAssetTrend,
+  getCategorySummary,
+  getMonthlySummary,
+} from "../api/dashboard";
 import {
   createTransaction,
   deleteTransaction,
@@ -27,7 +31,12 @@ import TransactionList from "../components/dashboard/TransactionList";
 import AppSidebar from "../components/layout/AppSidebar";
 import AppTopbar from "../components/layout/AppTopbar";
 import type { Category, CategoryType } from "../types/category";
-import type { CategorySummary, MonthlySummary } from "../types/dashboard";
+import type {
+  AssetTrendItem,
+  AssetTrendPeriod,
+  CategorySummary,
+  MonthlySummary,
+} from "../types/dashboard";
 import type { Transaction } from "../types/transaction";
 import { formatRemainingTime, getTokenRemainingSeconds } from "../utils/auth";
 
@@ -59,6 +68,10 @@ const getCurrentMonth = () => {
 function DashboardPage({ onLogout }: DashboardPageProps) {
   const [summary, setSummary] = useState<MonthlySummary | null>(null);
   const [categorySummary, setCategorySummary] = useState<CategorySummary[]>([]);
+  const [assetTrend, setAssetTrend] = useState<AssetTrendItem[]>([]);
+  const [assetTrendPeriod, setAssetTrendPeriod] =
+    useState<AssetTrendPeriod>("daily");
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
@@ -148,16 +161,23 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
     setErrorMessage("");
 
     try {
-      const [summaryData, categorySummaryData, categoryData, transactionData] =
-        await Promise.all([
-          getMonthlySummary(token, selectedYear, selectedMonth),
-          getCategorySummary(token, selectedYear, selectedMonth),
-          getCategories(token),
-          getTransactions(token, selectedYear, selectedMonth),
-        ]);
+      const [
+        summaryData,
+        categorySummaryData,
+        assetTrendData,
+        categoryData,
+        transactionData,
+      ] = await Promise.all([
+        getMonthlySummary(token, selectedYear, selectedMonth),
+        getCategorySummary(token, selectedYear, selectedMonth),
+        getAssetTrend(token, selectedYear, selectedMonth, assetTrendPeriod),
+        getCategories(token),
+        getTransactions(token, selectedYear, selectedMonth),
+      ]);
 
       setSummary(summaryData);
       setCategorySummary(categorySummaryData);
+      setAssetTrend(assetTrendData);
       setCategories(categoryData);
       setTransactions(transactionData);
 
@@ -194,7 +214,7 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
   useEffect(() => {
     fetchDashboardData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear, selectedMonth]);
+  }, [selectedYear, selectedMonth, assetTrendPeriod]);
 
   useEffect(() => {
     const updateRemainingTime = () => {
@@ -620,7 +640,6 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
 
   return (
     <main className={`${theme === "dark" ? "dark " : ""}app-shell`}>
-      {" "}
       <AppTopbar
         theme={theme}
         remainingTimeText={formatRemainingTime(remainingSeconds)}
@@ -630,6 +649,7 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
         onExtendSession={handleExtendSession}
         onLogout={handleLogout}
       />
+
       <div className="flex">
         <AppSidebar
           activeView={activeView}
@@ -641,13 +661,13 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
         <div className="min-w-0 flex-1 px-5 py-8">
           <div className="mx-auto max-w-6xl">
             {isLoading && (
-              <div className="app-card mb-6 p-6 text-slate-500">
+              <div className="app-card mb-6 p-6 text-slate-500 dark:text-slate-400">
                 Loading dashboard...
               </div>
             )}
 
             {errorMessage && (
-              <div className="mb-6 rounded-2xl border border-red-100 bg-red-50/90 p-4 text-sm font-semibold text-red-600 shadow-sm">
+              <div className="mb-6 rounded-2xl border border-red-100 bg-red-50/90 p-4 text-sm font-semibold text-red-600 shadow-sm dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
                 {errorMessage}
               </div>
             )}
@@ -660,7 +680,7 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
                   {activeView === "categories" && "Categories"}
                 </p>
 
-                <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
+                <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950 dark:text-white">
                   {activeView === "overview" &&
                     `${selectedYear}년 ${selectedMonth}월 요약`}
                   {activeView === "transactions" &&
@@ -668,9 +688,9 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
                   {activeView === "categories" && "카테고리 관리"}
                 </h2>
 
-                <p className="mt-2 text-sm font-medium text-slate-500">
+                <p className="mt-2 text-sm font-medium text-slate-500 dark:text-slate-400">
                   {activeView === "overview" &&
-                    "선택한 월의 수입, 지출, 잔액 흐름을 확인하세요."}
+                    "선택한 월의 수입, 지출, 누적 자산 흐름을 확인하세요."}
                   {activeView === "transactions" &&
                     "거래내역을 등록하고 수정하거나 삭제할 수 있습니다."}
                   {activeView === "categories" &&
@@ -718,9 +738,11 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
                 <SummaryCards summary={summary} />
 
                 <AssetTrendChart
-                  transactions={transactions}
+                  assetTrend={assetTrend}
                   selectedYear={selectedYear}
                   selectedMonth={selectedMonth}
+                  period={assetTrendPeriod}
+                  onChangePeriod={setAssetTrendPeriod}
                 />
 
                 <CategoryExpenseSummary
@@ -779,6 +801,7 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
           </div>
         </div>
       </div>
+
       <TransactionEditModal
         editingTransaction={editingTransaction}
         categories={categories}

@@ -9,3 +9,13 @@ export interface CategorySummary {
   category_name: string;
   total_amount: number;
 }
+
+export interface AssetTrendItem {
+  label: string;
+  date: string | null;
+  income: number;
+  expense: number;
+  balance: number;
+}
+
+export type AssetTrendPeriod = "daily" | "weekly";
