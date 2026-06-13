@@ -20,3 +20,22 @@ export function createTransaction(
     body,
   });
 }
+
+export function updateTransaction(
+  token: string,
+  transactionId: string,
+  body: TransactionCreateRequest,
+) {
+  return apiRequest<Transaction>(`/transactions/${transactionId}`, {
+    method: "PATCH",
+    token,
+    body,
+  });
+}
+
+export function deleteTransaction(token: string, transactionId: string) {
+  return apiRequest<void>(`/transactions/${transactionId}`, {
+    method: "DELETE",
+    token,
+  });
+}

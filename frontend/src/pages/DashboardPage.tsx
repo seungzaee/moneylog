@@ -10,7 +10,12 @@ import {
   updateCategory,
 } from "../api/categories";
 import { getCategorySummary, getMonthlySummary } from "../api/dashboard";
-import { createTransaction, getTransactions } from "../api/transactions";
+import {
+  createTransaction,
+  deleteTransaction,
+  getTransactions,
+  updateTransaction,
+} from "../api/transactions";
 import type { Category } from "../types/category";
 import type { CategorySummary, MonthlySummary } from "../types/dashboard";
 import type { Transaction } from "../types/transaction";
@@ -37,6 +42,14 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
   const [transactionDate, setTransactionDate] = useState("2026-06-12");
+
+  const [editingTransaction, setEditingTransaction] =
+    useState<Transaction | null>(null);
+  const [editType, setEditType] = useState<"income" | "expense">("expense");
+  const [editCategoryId, setEditCategoryId] = useState("");
+  const [editAmount, setEditAmount] = useState("");
+  const [editMemo, setEditMemo] = useState("");
+  const [editTransactionDate, setEditTransactionDate] = useState("2026-06-12");
 
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -227,6 +240,24 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
     }
   };
 
+  const openEditTransactionModal = (transaction: Transaction) => {
+    setEditingTransaction(transaction);
+    setEditType(transaction.type);
+    setEditCategoryId(transaction.category.id);
+    setEditAmount(String(transaction.amount));
+    setEditMemo(transaction.memo ?? "");
+    setEditTransactionDate(transaction.transaction_date);
+  };
+
+  const closeEditTransactionModal = () => {
+    setEditingTransaction(null);
+    setEditType("expense");
+    setEditCategoryId("");
+    setEditAmount("");
+    setEditMemo("");
+    setEditTransactionDate("2026-06-12");
+  };
+
   const handleCreateTransaction = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -271,6 +302,90 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
         setErrorMessage(error.message);
       } else {
         setErrorMessage("Failed to create transaction");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateTransaction = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const token = getToken();
+
+    if (!token || !editingTransaction) {
+      setErrorMessage("Login is required.");
+      return;
+    }
+
+    if (!editCategoryId) {
+      setErrorMessage("Please select a category.");
+      return;
+    }
+
+    const parsedAmount = Number(editAmount);
+
+    if (!editAmount || Number.isNaN(parsedAmount) || parsedAmount <= 0) {
+      setErrorMessage("Amount must be greater than 0.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage("");
+
+    try {
+      await updateTransaction(token, editingTransaction.id, {
+        type: editType,
+        category_id: editCategoryId,
+        amount: parsedAmount,
+        memo: editMemo.trim() ? editMemo : null,
+        transaction_date: editTransactionDate,
+      });
+
+      closeEditTransactionModal();
+
+      await fetchDashboardData();
+    } catch (error) {
+      if (error instanceof Error) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("Failed to update transaction");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteTransaction = async (transactionId: string) => {
+    const token = getToken();
+
+    if (!token) {
+      setErrorMessage("Login is required.");
+      return;
+    }
+
+    const shouldDelete = window.confirm("Delete this transaction?");
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage("");
+
+    try {
+      await deleteTransaction(token, transactionId);
+
+      if (editingTransaction?.id === transactionId) {
+        closeEditTransactionModal();
+      }
+
+      await fetchDashboardData();
+    } catch (error) {
+      if (error instanceof Error) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("Failed to delete transaction");
       }
     } finally {
       setIsSubmitting(false);
@@ -335,15 +450,11 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
         )}
 
         <section className="mt-8 rounded-2xl bg-white p-6 shadow">
-          <div className="mb-5 flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-slate-900">
-                카테고리 관리
-              </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                수입과 지출을 분류할 카테고리를 관리하세요.
-              </p>
-            </div>
+          <div className="mb-5">
+            <h2 className="text-xl font-bold text-slate-900">카테고리 관리</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              수입과 지출을 분류할 카테고리를 관리하세요.
+            </p>
           </div>
 
           <form onSubmit={handleCreateCategory} className="flex gap-3">
@@ -542,7 +653,7 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
                 {transactions.map((transaction) => (
                   <div
                     key={transaction.id}
-                    className="flex items-center justify-between rounded-xl border border-slate-100 p-4"
+                    className="flex items-center justify-between gap-4 rounded-xl border border-slate-100 p-4"
                   >
                     <div>
                       <p className="font-semibold text-slate-900">
@@ -554,16 +665,39 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
                       </p>
                     </div>
 
-                    <p
-                      className={`font-bold ${
-                        transaction.type === "income"
-                          ? "text-blue-600"
-                          : "text-red-500"
-                      }`}
-                    >
-                      {transaction.type === "income" ? "+" : "-"}
-                      {formatCurrency(transaction.amount)}
-                    </p>
+                    <div className="flex items-center gap-4">
+                      <p
+                        className={`font-bold ${
+                          transaction.type === "income"
+                            ? "text-blue-600"
+                            : "text-red-500"
+                        }`}
+                      >
+                        {transaction.type === "income" ? "+" : "-"}
+                        {formatCurrency(transaction.amount)}
+                      </p>
+
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openEditTransactionModal(transaction)}
+                          className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleDeleteTransaction(transaction.id)
+                          }
+                          disabled={isSubmitting}
+                          className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-100 disabled:bg-slate-100 disabled:text-slate-400"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -608,6 +742,117 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
           )}
         </section>
       </div>
+
+      {editingTransaction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-slate-900">
+                거래내역 수정
+              </h2>
+
+              <button
+                type="button"
+                onClick={closeEditTransactionModal}
+                className="text-sm font-semibold text-slate-500 hover:text-slate-900"
+              >
+                Close
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateTransaction} className="space-y-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Type
+                </label>
+                <select
+                  value={editType}
+                  onChange={(event) =>
+                    setEditType(event.target.value as "income" | "expense")
+                  }
+                  className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+                >
+                  <option value="expense">Expense</option>
+                  <option value="income">Income</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Category
+                </label>
+                <select
+                  value={editCategoryId}
+                  onChange={(event) => setEditCategoryId(event.target.value)}
+                  className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+                >
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Amount
+                </label>
+                <input
+                  type="number"
+                  value={editAmount}
+                  onChange={(event) => setEditAmount(event.target.value)}
+                  className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Memo
+                </label>
+                <input
+                  type="text"
+                  value={editMemo}
+                  onChange={(event) => setEditMemo(event.target.value)}
+                  className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Date
+                </label>
+                <input
+                  type="date"
+                  value={editTransactionDate}
+                  onChange={(event) =>
+                    setEditTransactionDate(event.target.value)
+                  }
+                  className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={closeEditTransactionModal}
+                  className="flex-1 rounded-lg border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:bg-slate-400"
+                >
+                  {isSubmitting ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
