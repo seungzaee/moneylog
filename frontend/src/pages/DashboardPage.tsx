@@ -33,6 +33,16 @@ interface DashboardPageProps {
   onLogout: () => void;
 }
 
+const getTodayDateInput = () => {
+  const today = new Date();
+
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
 function DashboardPage({ onLogout }: DashboardPageProps) {
   const [summary, setSummary] = useState<MonthlySummary | null>(null);
   const [categorySummary, setCategorySummary] = useState<CategorySummary[]>([]);
@@ -56,7 +66,7 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
   const [categoryId, setCategoryId] = useState("");
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
-  const [transactionDate, setTransactionDate] = useState("2026-06-12");
+  const [transactionDate, setTransactionDate] = useState(getTodayDateInput());
 
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null);
@@ -64,7 +74,8 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
   const [editCategoryId, setEditCategoryId] = useState("");
   const [editAmount, setEditAmount] = useState("");
   const [editMemo, setEditMemo] = useState("");
-  const [editTransactionDate, setEditTransactionDate] = useState("2026-06-12");
+  const [editTransactionDate, setEditTransactionDate] =
+    useState(getTodayDateInput());
 
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -392,7 +403,7 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
     setEditCategoryId("");
     setEditAmount("");
     setEditMemo("");
-    setEditTransactionDate("2026-06-12");
+    setEditTransactionDate(getTodayDateInput());
   };
 
   const handleCreateTransaction = async (event: FormEvent<HTMLFormElement>) => {
@@ -442,10 +453,12 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
       setAmount("");
       setMemo("");
       setType("expense");
+      setTransactionDate(getTodayDateInput());
 
       const firstExpenseCategory = categories.find(
         (category) => category.type === "expense",
       );
+
       setCategoryId(firstExpenseCategory?.id ?? "");
 
       await fetchDashboardData();
