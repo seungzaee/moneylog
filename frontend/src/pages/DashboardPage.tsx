@@ -21,6 +21,7 @@ import {
   getTransactions,
   updateTransaction,
 } from "../api/transactions";
+import AiAssistantPanel from "../components/ai/AiAssistantPanel";
 import AssetTrendChart from "../components/dashboard/AssetTrendChart";
 import CategoryExpenseSummary from "../components/dashboard/CategoryExpenseSummary";
 import CategoryManager from "../components/dashboard/CategoryManager";
@@ -818,6 +819,11 @@ function DashboardPage({ onLogout }: DashboardPageProps) {
         onChangeEditTransactionDate={setEditTransactionDate}
         onClose={closeEditTransactionModal}
         onUpdateTransaction={handleUpdateTransaction}
+      />
+
+      <AiAssistantPanel
+        selectedYear={selectedYear}
+        selectedMonth={selectedMonth}
       />
     </main>
   );
