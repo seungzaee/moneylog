@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 
+import { chatWithAi } from "../../api/ai";
+
 interface AiAssistantPanelProps {
   selectedYear: number;
   selectedMonth: number;
@@ -26,6 +28,8 @@ function AiAssistantPanel({
   const [isOpen, setIsOpen] = useState(false);
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
   const [inputMessage, setInputMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
   const [messages, setMessages] = useState<AiMessage[]>([
     {
       id: 1,
@@ -46,56 +50,72 @@ function AiAssistantPanel({
       behavior: "smooth",
       block: "end",
     });
-  }, [messages, isOpen]);
+  }, [messages, isOpen, isLoading]);
 
-  const createTemporaryAnswer = (question: string) => {
-    if (question.includes("소비") || question.includes("요약")) {
-      return `${selectedYear}년 ${selectedMonth}월 소비 요약을 분석할 준비가 되어 있어요. 다음 단계에서 실제 AI API를 연결하면 현재 대시보드 데이터를 기반으로 자세히 답변할 수 있습니다.`;
-    }
-
-    if (question.includes("카테고리")) {
-      return "카테고리별 지출 데이터를 분석해서 가장 많이 사용한 항목을 알려드릴 수 있어요. 아직은 UI 단계라 임시 응답을 보여주고 있습니다.";
-    }
-
-    if (question.includes("절약")) {
-      return "절약 포인트는 반복적으로 많이 쓰는 카테고리와 최근 지출 패턴을 기준으로 제안할 수 있어요. 다음 단계에서 실제 데이터를 연결해볼게요.";
-    }
-
-    if (question.includes("자산")) {
-      return "누적 자산 흐름 그래프를 기반으로 시작 잔액, 현재 잔액, 변화폭을 설명할 수 있어요. 지금은 프론트 UI 테스트용 응답입니다.";
-    }
-
-    return "좋은 질문이에요. 다음 단계에서 OpenAI API를 연결하면 현재 MoneyLog 데이터를 기반으로 더 자연스럽게 답변할 수 있습니다.";
-  };
-
-  const addMessage = (question: string) => {
+  const addMessage = async (question: string) => {
     const trimmedQuestion = question.trim();
 
-    if (!trimmedQuestion) {
+    if (!trimmedQuestion || isLoading) {
       return;
     }
 
-    setMessages((prev) => {
-      const nextUserMessageId = prev.length + 1;
-      const nextAssistantMessageId = prev.length + 2;
+    const token = localStorage.getItem("access_token");
 
-      const userMessage: AiMessage = {
-        id: nextUserMessageId,
+    if (!token) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: prev.length + 1,
+          role: "assistant",
+          content: "로그인이 필요합니다. 다시 로그인해주세요.",
+        },
+      ]);
+      return;
+    }
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: prev.length + 1,
         role: "user",
         content: trimmedQuestion,
-      };
-
-      const assistantMessage: AiMessage = {
-        id: nextAssistantMessageId,
-        role: "assistant",
-        content: createTemporaryAnswer(trimmedQuestion),
-      };
-
-      return [...prev, userMessage, assistantMessage];
-    });
+      },
+    ]);
 
     setInputMessage("");
     setIsSuggestionsOpen(false);
+    setIsLoading(true);
+
+    try {
+      const data = await chatWithAi(token, {
+        message: trimmedQuestion,
+        year: selectedYear,
+        month: selectedMonth,
+      });
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: prev.length + 1,
+          role: "assistant",
+          content: data.answer,
+        },
+      ]);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: prev.length + 1,
+          role: "assistant",
+          content:
+            error instanceof Error
+              ? error.message
+              : "AI 응답을 가져오지 못했습니다.",
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -180,7 +200,8 @@ function AiAssistantPanel({
                       key={question}
                       type="button"
                       onClick={() => addMessage(question)}
-                      className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-black text-slate-500 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-950 hover:text-white dark:border-white/10 dark:bg-white/10 dark:text-slate-300 dark:hover:bg-white dark:hover:text-slate-950"
+                      disabled={isLoading}
+                      className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-black text-slate-500 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-950 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-white/10 dark:text-slate-300 dark:hover:bg-white dark:hover:text-slate-950"
                     >
                       {question}
                     </button>
@@ -205,7 +226,7 @@ function AiAssistantPanel({
                 )}
 
                 <div
-                  className={`max-w-[78%] rounded-3xl px-4 py-3 text-sm font-semibold leading-6 shadow-sm ${
+                  className={`max-w-[78%] whitespace-pre-wrap rounded-3xl px-4 py-3 text-sm font-semibold leading-6 shadow-sm ${
                     message.role === "user"
                       ? "rounded-br-lg bg-slate-950 text-white dark:bg-white dark:text-slate-950"
                       : "rounded-bl-lg border border-slate-200 bg-white text-slate-700 dark:border-white/10 dark:bg-white/10 dark:text-slate-200"
@@ -215,6 +236,18 @@ function AiAssistantPanel({
                 </div>
               </div>
             ))}
+
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="mr-2 mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-[10px] font-black text-white dark:bg-white dark:text-slate-950">
+                  AI
+                </div>
+
+                <div className="rounded-3xl rounded-bl-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-500 shadow-sm dark:border-white/10 dark:bg-white/10 dark:text-slate-300">
+                  답변을 생성하고 있어요...
+                </div>
+              </div>
+            )}
 
             <div ref={messagesEndRef} />
           </div>
@@ -228,15 +261,19 @@ function AiAssistantPanel({
                 type="text"
                 value={inputMessage}
                 onChange={(event) => setInputMessage(event.target.value)}
-                className="min-w-0 flex-1 bg-transparent px-3 py-2 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
-                placeholder="질문을 입력하세요"
+                disabled={isLoading}
+                className="min-w-0 flex-1 bg-transparent px-3 py-2 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed dark:text-white dark:placeholder:text-slate-500"
+                placeholder={
+                  isLoading ? "AI가 답변 중입니다..." : "질문을 입력하세요"
+                }
               />
 
               <button
                 type="submit"
-                className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white transition hover:bg-slate-800 disabled:bg-slate-400 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
+                disabled={isLoading || !inputMessage.trim()}
+                className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100 dark:disabled:bg-slate-600 dark:disabled:text-slate-300"
               >
-                Send
+                {isLoading ? "..." : "Send"}
               </button>
             </div>
           </form>

@@ -1,10 +1,11 @@
 from fastapi import APIRouter
 
-from app.api.v1 import auth, categories, dashboard, transactions
+from app.api.v1 import ai, auth, categories, dashboard, transactions
 from app.core.database import check_database_connection
 
 api_router = APIRouter()
 
+api_router.include_router(ai.router)
 api_router.include_router(auth.router)
 api_router.include_router(categories.router)
 api_router.include_router(transactions.router)
