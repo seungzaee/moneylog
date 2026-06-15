@@ -6,6 +6,11 @@
 
 ---
 
+## 배포 URL
+
+- Frontend: https://moneylog-v2iz.vercel.app
+- Backend API Docs: https://moneylog-backend.onrender.com/docs
+
 ## 프로젝트 소개
 
 MoneyLog는 사용자가 자신의 소비 패턴을 더 쉽게 이해하고 관리할 수 있도록 만든 개인 금융 관리 서비스입니다.
