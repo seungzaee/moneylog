@@ -1,38 +1,32 @@
-const API_BASE_URL = "http://127.0.0.1:8000/api/v1";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000/api/v1";
 
 interface ApiRequestOptions {
-  method?: string;
+  method?: "GET" | "POST" | "PUT" | "DELETE";
+  token?: string;
   body?: unknown;
-  token?: string | null;
 }
 
 export async function apiRequest<T>(
   endpoint: string,
   options: ApiRequestOptions = {},
 ): Promise<T> {
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-  };
-
-  if (options.token) {
-    headers.Authorization = `Bearer ${options.token}`;
-  }
+  const { method = "GET", token, body } = options;
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    method: options.method ?? "GET",
-    headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
   });
 
+  const data = await response.json().catch(() => null);
+
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-
-    throw new Error(errorData?.detail ?? "API request failed");
+    throw new Error(data?.detail ?? "API request failed");
   }
 
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return response.json() as Promise<T>;
+  return data as T;
 }
