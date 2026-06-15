@@ -157,6 +157,33 @@ Moneylog/
 
 ## 주요 화면
 
+### 로그인
+
+![Login](docs/images/login.png)
+
+### 회원가입
+
+![Signup](docs/images/signup.png)
+
+### 대시보드
+
+![Dashboard](docs/images/dashboard1.png)
+![Dashboard](docs/images/dashboard2.png)
+![Dashboard](docs/images/dashboard3.png)
+
+### 거래내역
+
+![Transactions](docs/images/transactions.png)
+
+### 카테고리 관리
+
+![Categories](docs/images/categories.png)
+
+### AI Assistant
+
+![AI Assistant](docs/images/ai_assistant1.png)
+![AI Assistant](docs/images/ai_assistant2.png)
+
 ### 로그인 / 회원가입
 
 - MoneyLog 서비스 소개
